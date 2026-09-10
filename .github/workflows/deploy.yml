@@ -53,7 +53,7 @@ jobs:
       - name: Set pipeline flags
         id: set
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event.created }}" = "true" ]; then
             echo "api=true" >> "$GITHUB_OUTPUT"
             echo "worker=true" >> "$GITHUB_OUTPUT"
             echo "frontend=true" >> "$GITHUB_OUTPUT"
@@ -178,9 +178,16 @@ jobs:
             VITE_API_BASE_URL=/sorting-table/api/v1
             VITE_BASE_PATH=/sorting-table/
 
-  api_deploy:
-    needs: [changes, api_build]
-    if: needs.changes.outputs.api == 'true'
+  deploy:
+    needs: [changes, api_build, worker_build, frontend_build]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.changes.result == 'success' &&
+      (needs.api_build.result == 'success' || needs.api_build.result == 'skipped') &&
+      (needs.worker_build.result == 'success' || needs.worker_build.result == 'skipped') &&
+      (needs.frontend_build.result == 'success' || needs.frontend_build.result == 'skipped') &&
+      (needs.changes.outputs.api == 'true' || needs.changes.outputs.worker == 'true' || needs.changes.outputs.frontend == 'true')
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -201,63 +208,21 @@ jobs:
             set -e
             cd /var/www/portfolio.am-projects.ru/sorting-table/
             echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-            docker pull ${{ secrets.DOCKER_USERNAME }}/sorting-table-api:latest
             export DOCKER_USERNAME='${{ secrets.DOCKER_USERNAME }}'
-            docker compose -f docker-compose.prod.yml up -d api
-            docker image prune -f
 
-  worker_deploy:
-    needs: [changes, worker_build]
-    if: needs.changes.outputs.worker == 'true'
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-      - uses: appleboy/scp-action@v0.1.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SORTING_TABLE_SSH_PRIVATE_KEY }}
-          source: "docker-compose.prod.yml"
-          target: "/var/www/portfolio.am-projects.ru/sorting-table/"
-      - uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SORTING_TABLE_SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-            cd /var/www/portfolio.am-projects.ru/sorting-table/
-            echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-            docker pull ${{ secrets.DOCKER_USERNAME }}/sorting-table-worker:latest
-            export DOCKER_USERNAME='${{ secrets.DOCKER_USERNAME }}'
-            docker compose -f docker-compose.prod.yml up -d worker
-            docker image prune -f
+            SERVICES=""
+            if [ "${{ needs.changes.outputs.api }}" = "true" ]; then
+              docker pull "${DOCKER_USERNAME}/sorting-table-api:latest"
+              SERVICES="${SERVICES} api"
+            fi
+            if [ "${{ needs.changes.outputs.worker }}" = "true" ]; then
+              docker pull "${DOCKER_USERNAME}/sorting-table-worker:latest"
+              SERVICES="${SERVICES} worker"
+            fi
+            if [ "${{ needs.changes.outputs.frontend }}" = "true" ]; then
+              docker pull "${DOCKER_USERNAME}/sorting-table-web:latest"
+              SERVICES="${SERVICES} web"
+            fi
 
-  frontend_deploy:
-    needs: [changes, frontend_build]
-    if: needs.changes.outputs.frontend == 'true'
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-      - uses: appleboy/scp-action@v0.1.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SORTING_TABLE_SSH_PRIVATE_KEY }}
-          source: "docker-compose.prod.yml"
-          target: "/var/www/portfolio.am-projects.ru/sorting-table/"
-      - uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SORTING_TABLE_SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-            cd /var/www/portfolio.am-projects.ru/sorting-table/
-            echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-            docker pull ${{ secrets.DOCKER_USERNAME }}/sorting-table-web:latest
-            export DOCKER_USERNAME='${{ secrets.DOCKER_USERNAME }}'
-            docker compose -f docker-compose.prod.yml up -d web
+            docker compose -f docker-compose.prod.yml up -d ${SERVICES}
             docker image prune -f
