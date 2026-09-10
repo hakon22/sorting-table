@@ -1,0 +1,22 @@
+{
+  "name": "@sorting-table/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "17.2.3",
+    "lodash-es": "4.17.21",
+    "moment-timezone": "0.6.0",
+    "typescript-ioc": "3.2.2",
+    "winston": "3.18.3",
+    "winston-daily-rotate-file": "5.0.0",
+    "yup": "1.7.1"
+  },
+  "devDependencies": {
+    "@types/lodash-es": "4.17.12"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "sorting-table",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "api",
+    "web",
+    "shared",
+    "worker"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev -w api",
+    "dev:web": "npm run dev -w web",
+    "dev:worker": "npm run start:dev -w worker",
+    "build": "npm run build -w shared && npm run build -w api && npm run build -w worker && npm run build -w web",
+    "build:api": "npm run build -w api",
+    "build:web": "npm run build -w web",
+    "build:worker": "npm run build -w worker",
+    "start:server:prod": "npm run start:prod -w api",
+    "start:server:docker:dev": "cross-env IS_DOCKER=TRUE npm run start:prod -w api",
+    "start:worker:prod": "npm run start:prod -w worker",
+    "start:worker:docker:dev": "cross-env IS_DOCKER=TRUE npm run start:prod -w worker",
+    "lint": "eslint \"api/src\" \"web/src\" \"shared\" \"worker/src\"",
+    "typecheck": "npm run typecheck -w shared && npm run typecheck -w api && npm run typecheck -w worker && npm run typecheck -w web"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "3.3.6",
+    "@eslint/js": "9.39.5",
+    "@stylistic/eslint-plugin": "5.10.0",
+    "@types/node": "26.1.1",
+    "@typescript-eslint/eslint-plugin": "8.65.0",
+    "@typescript-eslint/parser": "8.65.0",
+    "concurrently": "9.2.1",
+    "cross-env": "10.1.0",
+    "eslint": "9.39.5",
+    "eslint-import-resolver-typescript": "4.4.5",
+    "eslint-plugin-import": "2.32.0",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.7.0",
+    "tsc-alias": "1.9.1",
+    "typescript": "5.9.3"
+  }
+}

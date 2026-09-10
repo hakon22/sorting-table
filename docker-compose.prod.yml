@@ -1,0 +1,28 @@
+services:
+  api:
+    image: ${DOCKER_USERNAME}/sorting-table-api:latest
+    network_mode: "host"
+    env_file: .env
+    volumes:
+      - /srv/logs:/srv/logs
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    restart: unless-stopped
+    command: start:server:prod
+
+  worker:
+    image: ${DOCKER_USERNAME}/sorting-table-worker:latest
+    network_mode: "host"
+    env_file: .env
+    volumes:
+      - /srv/logs:/srv/logs
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    restart: unless-stopped
+    command: start:worker:prod
+
+  web:
+    image: ${DOCKER_USERNAME}/sorting-table-web:latest
+    ports:
+      - "4001:80"
+    restart: unless-stopped
