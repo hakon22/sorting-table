@@ -24,6 +24,7 @@ jobs:
         id: filter
         if: github.event_name == 'push'
         with:
+          base: ${{ github.ref }}
           filters: |
             api:
               - 'api/**'
